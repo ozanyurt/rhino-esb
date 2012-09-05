@@ -4,6 +4,7 @@
 
 # Must match parameter definitions for psake.psm1/invoke-psake 
 # otherwise named parameter binding fails
+
 param(
   [Parameter(Position=0,Mandatory=0)]
   [string]$buildFile = 'default.ps1',
@@ -18,12 +19,18 @@ param(
   [Parameter(Position=5, Mandatory=0)]
   [System.Collections.Hashtable]$properties = @{}
 )
-
+$currentThread = [System.Threading.Thread]::CurrentThread
+$invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+$currentThread.CurrentCulture = $invariantCulture
+$currentThread.CurrentUICulture = $invariantCulture
 remove-module psake -ea 'SilentlyContinue'
 $scriptPath = Split-Path -parent $MyInvocation.MyCommand.path
+echo $scriptPath
 import-module (join-path $scriptPath psake.psm1)
+echo $buildFile
 if (-not(test-path $buildFile))
 {
     $buildFile = (join-path $scriptPath $buildFile)
+	echo $buildFile
 } 
-invoke-psake $buildFile $taskList $framework $docs $parameters $properties
+Invoke-psake $buildFile $taskList $framework $docs $parameters $properties

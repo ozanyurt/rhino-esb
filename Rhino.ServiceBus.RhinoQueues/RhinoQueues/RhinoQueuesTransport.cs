@@ -2,6 +2,7 @@ using System;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -97,7 +98,7 @@ namespace Rhino.ServiceBus.RhinoQueues
             foreach (var thread in threads)
             {
                 thread.Join();
-            } 
+            }
         }
 
         private void DisposeQueueManager()
@@ -198,8 +199,8 @@ namespace Rhino.ServiceBus.RhinoQueues
                         {
                             queueManager.Dispose();
                             Thread.Sleep(1000); //allow time for queue storage to be release
-                        } 
-                        catch{ }
+                        }
+                        catch { }
                         //Another process managed to grab our selected port before we could open it, so try again
                         continue;
                     }
@@ -319,7 +320,7 @@ namespace Rhino.ServiceBus.RhinoQueues
                                 ProcessMessage(message, tx,
                                        AdministrativeMessageArrived,
                                        AdministrativeMessageProcessingCompleted,
-                                       null, 
+                                       null,
                                        null);
                                 break;
                             case MessageType.ShutDownMessageMarker:
@@ -425,6 +426,16 @@ namespace Rhino.ServiceBus.RhinoQueues
         {
             try
             {
+                if (message.Headers["IWasCompressed"] == "true")
+                {
+                    using (var bigStream = new GZipStream(new MemoryStream(message.Data), CompressionMode.Decompress))
+                    {
+                        var bigStreamOut = new MemoryStream();
+                        bigStream.CopyTo(bigStreamOut);
+                        message.Data = bigStreamOut.ToArray();
+                        
+                    }
+                }
                 return messageSerializer.Deserialize(new MemoryStream(message.Data));
             }
             catch (Exception e)

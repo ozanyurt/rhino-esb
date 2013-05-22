@@ -4,6 +4,7 @@ using System.Threading;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using Castle.Windsor.Configuration.Interpreters;
+using Rhino.ServiceBus.Config;
 using Rhino.ServiceBus.Castle;
 using Rhino.ServiceBus.Hosting;
 using Rhino.ServiceBus.Impl;
@@ -29,6 +30,17 @@ namespace Rhino.ServiceBus.Tests.Hosting
                 .UseCastleWindsor(container)
                 .UseStandaloneConfigurationFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AnotherBus.config"))
                 .Configure();
+        }
+
+        [Fact]
+        public void Can_use_different_config_correctly()
+        {
+            var windsorContainer = new WindsorContainer();
+            var bootStrapper = new SimpleBootStrapper(windsorContainer);
+            var differentConfig = new BusConfigurationSection();
+            bootStrapper.UseConfiguration(differentConfig);
+            bootStrapper.InitializeContainer();
+            Assert.Equal(differentConfig, bootStrapper.ConfigurationSectionInUse);
         }
 
         [Fact]
@@ -78,9 +90,16 @@ namespace Rhino.ServiceBus.Tests.Hosting
 
     public class SimpleBootStrapper : CastleBootStrapper
     {
+        public BusConfigurationSection ConfigurationSectionInUse {get ; private set;}
+
         public SimpleBootStrapper(IWindsorContainer container) : base(container)
         {
             
+        }
+
+        protected override void ConfigureBusFacility(AbstractRhinoServiceBusConfiguration configuration)
+        {
+            ConfigurationSectionInUse = configuration.ConfigurationSection;
         }
     }
 
